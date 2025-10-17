@@ -79,9 +79,6 @@ services:
       - open-webui
       - n8n
       - ollama
-    networks:
-      - frontend
-      - backend
     ports:
       - 0.0.0.0:8443:443
     volumes:
