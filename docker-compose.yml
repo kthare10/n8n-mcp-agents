@@ -28,6 +28,7 @@ services:
       N8N_PORT: ${N8N_PORT:-5678}
       N8N_PROTOCOL: ${N8N_PROTOCOL:-http}
       WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:5678/}
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: True
       # DB
       DB_TYPE: postgresdb
       DB_POSTGRESDB_HOST: postgres
