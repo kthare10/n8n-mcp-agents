@@ -26,21 +26,11 @@ services:
     depends_on:
       - postgres
     environment:
-            #user: "${NDN_UID:-1000}:${NDN_GID:-1000}"
       TZ: ${TZ:-America/New_York}
-
-      # --- n8n behind subpath /n8n ---
-      N8N_HOST: localhost
-      N8N_PORT: 5678
-      N8N_PROTOCOL: https
-      N8N_EDITOR_BASE_URL: https://localhost/n8n/
-      WEBHOOK_URL:        https://localhost/n8n/
-      N8N_SECURE_COOKIE: "true"
-      N8N_PROXY_HOPS: 1
-      N8N_PATH: /n8n/
-      # Permissions warning: enforce secure 0600 on config file
-      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
-
+      N8N_HOST: ${N8N_HOST:-localhost}
+      N8N_PORT: ${N8N_PORT:-5678}
+      N8N_PROTOCOL: ${N8N_PROTOCOL:-http}
+      WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:5678/}
       # DB
       DB_TYPE: postgresdb
       DB_POSTGRESDB_HOST: postgres
