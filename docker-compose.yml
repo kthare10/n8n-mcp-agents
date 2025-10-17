@@ -3,6 +3,7 @@ services:
     image: postgres:15
     container_name: n8n_postgres
     restart: always
+    network_mode: host
     environment:
       user: "${NDN_UID:-1000}:${NDN_GID:-1000}"
       POSTGRES_USER: ${POSTGRES_USER:-n8n}
@@ -16,6 +17,7 @@ services:
     image: n8nio/n8n:latest
     container_name: n8n
     restart: always
+    network_mode: host
     depends_on:
       - postgres
     ports:
@@ -75,6 +77,7 @@ services:
     image: nginx:1.27-alpine
     container_name: nginx
     restart: always
+    network_mode: host
     depends_on:
       - open-webui
       - n8n
