@@ -41,7 +41,7 @@ services:
       N8N_PAYLOAD_SIZE_MAX: ${N8N_PAYLOAD_SIZE_MAX:-64}
       EXECUTIONS_MODE: ${EXECUTIONS_MODE:-regular}
     volumes:
-      - ./n8n_data:/home/node/.n8n
+      - n8n_data:/home/node/.n8n
 
   # --- Ollama for local LLMs (no host port; behind nginx) ---
   ollama:
@@ -90,3 +90,6 @@ services:
       - ./certs/privkey.pem:/etc/ssl/private.pem:ro
       - /opt/data/production/logs/nginx/n8n:/var/log/nginx
 
+
+volumes:
+  n8n_data: {}
