@@ -1,8 +1,11 @@
+version: '3.8'
+
 services:
   postgres:
     image: postgres:15
     container_name: n8n_postgres
     restart: always
+    network_mode: host
     environment:
       user: "${NDN_UID:-1000}:${NDN_GID:-1000}"
       POSTGRES_USER: ${POSTGRES_USER:-n8n}
@@ -18,17 +21,21 @@ services:
     restart: always
     depends_on:
       - postgres
-    ports:
-      - "5678:5678"
+    network_mode: host
     environment:
       N8N_SECURE_COOKIE: False
       TZ: ${TZ:-America/New_York}
       N8N_HOST: ${N8N_HOST:-localhost}
       N8N_PORT: ${N8N_PORT:-5678}
       N8N_PROTOCOL: ${N8N_PROTOCOL:-http}
-      WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:5678/}
+      # N8N on the root path requires N8N_PATH to be empty
+      N8N_PATH:
+      # Use your VM IP or domain from the .env file
+      WEBHOOK_URL: ${WEBHOOK_URL:-https://YOUR_VM_IP:8443/}
+
       N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: True
-      # DB
+
+      # DB: Use localhost since it's on the host network
       DB_TYPE: postgresdb
       DB_POSTGRESDB_HOST: localhost
       DB_POSTGRESDB_PORT: 5432
@@ -36,14 +43,12 @@ services:
       DB_POSTGRESDB_USER: ${POSTGRES_USER:-n8n}
       DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD:-n8n}
 
-      # Optional
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-}
       N8N_PAYLOAD_SIZE_MAX: ${N8N_PAYLOAD_SIZE_MAX:-64}
       EXECUTIONS_MODE: ${EXECUTIONS_MODE:-regular}
     volumes:
       - n8n_data:/home/node/.n8n
 
-  # --- Ollama for local LLMs (no host port; behind nginx) ---
   ollama:
     image: ollama/ollama:latest
     container_name: ollama
@@ -60,19 +65,19 @@ services:
             - capabilities: [gpu]
     entrypoint: ["/bin/sh", "-c", "ollama serve & sleep 2 && ollama pull $MODEL_NAME && tail -f /dev/null"]
 
-  # --- Open WebUI (served at site root /) ---
   open-webui:
     image: ghcr.io/open-webui/open-webui:latest
     container_name: open-webui
     restart: always
     depends_on:
       - ollama
+    network_mode: host
     environment:
-      OLLAMA_BASE_URL: https://ollama:11434
+      # Ollama is available on localhost:11434
+      OLLAMA_BASE_URL: http://localhost:11434
     volumes:
       - ./webui_data:/app/backend/data
 
-  # --- NGINX edge (TLS, routing to /, /n8n/, /ollama/) ---
   nginx:
     image: nginx:1.27-alpine
     container_name: nginx
@@ -83,13 +88,14 @@ services:
       - n8n
       - ollama
     ports:
+      # Map 8443 and 80 on the host to the container's 443 and 80
       - 0.0.0.0:8443:443
+      - 0.0.0.0:80:80
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./certs/fullchain.pem:/etc/ssl/public.pem:ro
       - ./certs/privkey.pem:/etc/ssl/private.pem:ro
       - /opt/data/production/logs/nginx/n8n:/var/log/nginx
-
 
 volumes:
   n8n_data: {}
