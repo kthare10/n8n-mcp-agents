@@ -1,3 +1,5 @@
+#!/bin/bash
+set -euo pipefail
 distro=$(. /etc/os-release; echo ${ID}${VERSION_ID//./})
 
 architecture='x86_64'
