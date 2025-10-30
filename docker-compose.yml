@@ -35,7 +35,6 @@ services:
       N8N_HOST: ${N8N_HOST:-localhost}
       N8N_PORT: ${N8N_PORT:-5678}
       N8N_PROTOCOL: ${N8N_PROTOCOL:-http}
-      N8N_PATH:
       WEBHOOK_URL: ${WEBHOOK_URL:-https://YOUR_VM_IP:8443/}
       N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: True
       DB_TYPE: postgresdb
@@ -47,6 +46,9 @@ services:
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-}
       N8N_PAYLOAD_SIZE_MAX: ${N8N_PAYLOAD_SIZE_MAX:-64}
       EXECUTIONS_MODE: ${EXECUTIONS_MODE:-regular}
+      N8N_PUSH_BACKEND: websocket
+      N8N_DEFAULT_CORS: False
+      N8N_CORS_ALLOW_ORIGIN: ${N8N_CORS_ALLOW_ORIGIN:-https://YOUR_VM_IP:8443/}
     volumes:
       - n8n_data:/home/node/.n8n
 
