@@ -1,19 +1,13 @@
-version: "3.8"
-
-networks:
-  v4only:
-    driver: bridge
-    enable_ipv6: false
+version: '3.8'
 
 services:
   postgres:
     image: postgres:15
     container_name: n8n_postgres
     restart: always
-    networks: [v4only]
-    ports:
-      - "127.0.0.1:5432:5432"   # expose locally
+    network_mode: host
     environment:
+      user: "${NDN_UID:-1000}:${NDN_GID:-1000}"
       POSTGRES_USER: ${POSTGRES_USER:-n8n}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-n8n}
       POSTGRES_DB: ${POSTGRES_DB:-n8n}
@@ -25,25 +19,30 @@ services:
     image: n8nio/n8n:latest
     container_name: n8n
     restart: always
-    depends_on: [postgres]
-    networks: [v4only]
-    ports:
-      - "5678:5678"
+    depends_on:
+      - postgres
+    network_mode: host
     environment:
       N8N_SECURE_COOKIE: False
       TZ: ${TZ:-America/New_York}
       N8N_HOST: ${N8N_HOST:-localhost}
       N8N_PORT: ${N8N_PORT:-5678}
       N8N_PROTOCOL: ${N8N_PROTOCOL:-http}
+      # N8N on the root path requires N8N_PATH to be empty
       N8N_PATH:
+      # Use your VM IP or domain from the .env file
       WEBHOOK_URL: ${WEBHOOK_URL:-https://YOUR_VM_IP:8443/}
+
       N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: True
+
+      # DB: Use localhost since it's on the host network
       DB_TYPE: postgresdb
-      DB_POSTGRESDB_HOST: postgres          # use service name, not localhost
+      DB_POSTGRESDB_HOST: localhost
       DB_POSTGRESDB_PORT: 5432
       DB_POSTGRESDB_DATABASE: ${POSTGRES_DB:-n8n}
       DB_POSTGRESDB_USER: ${POSTGRES_USER:-n8n}
       DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD:-n8n}
+
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-}
       N8N_PAYLOAD_SIZE_MAX: ${N8N_PAYLOAD_SIZE_MAX:-64}
       EXECUTIONS_MODE: ${EXECUTIONS_MODE:-regular}
@@ -54,31 +53,28 @@ services:
     image: ollama/ollama:latest
     container_name: ollama
     restart: always
-    networks: [v4only]
-    ports:
-      - "11434:11434"
-    environment:
-      GODEBUG: netdns=cgo            # make Go resolver follow /etc/gai.conf
-      MODEL_NAME: ${MODEL_NAME:-llama3}
+    network_mode: host
     volumes:
       - ./ollama:/root/.ollama
+    env_file:
+      - .env
     deploy:
       resources:
         reservations:
           devices:
             - capabilities: [gpu]
-    entrypoint: ["/bin/sh","-c","ollama serve & sleep 2 && ollama pull $MODEL_NAME && tail -f /dev/null"]
+    entrypoint: ["/bin/sh", "-c", "ollama serve & sleep 2 && ollama pull $MODEL_NAME && tail -f /dev/null"]
 
   open-webui:
     image: ghcr.io/open-webui/open-webui:latest
     container_name: open-webui
     restart: always
-    depends_on: [ollama]
-    networks: [v4only]
-    ports:
-      - "8080:8080"
+    depends_on:
+      - ollama
+    network_mode: host
     environment:
-      OLLAMA_BASE_URL: http://ollama:11434   # service name
+      # Ollama is available on localhost:11434
+      OLLAMA_BASE_URL: http://localhost:11434
     volumes:
       - ./webui_data:/app/backend/data
 
@@ -86,19 +82,16 @@ services:
     image: nginx:1.27-alpine
     container_name: nginx
     restart: always
-    depends_on: [open-webui, n8n, ollama]
-    networks: [v4only]
-    ports:
-      - "80:80"
-      - "443:443"
-      - "8443:8443"     # if your config listens here
+    network_mode: host
+    depends_on:
+      - open-webui
+      - n8n
+      - ollama
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./certs/fullchain.pem:/etc/ssl/public.pem:ro
       - ./certs/privkey.pem:/etc/ssl/private.pem:ro
       - /opt/data/production/logs/nginx/n8n:/var/log/nginx
-    environment:
-      GODEBUG: netdns=cgo
 
 volumes:
   n8n_data: {}
